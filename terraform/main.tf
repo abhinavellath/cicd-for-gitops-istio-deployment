@@ -72,10 +72,11 @@ resource "null_resource" "install_argocd_crds" {
   depends_on = [null_resource.minikube_cluster]
 
   provisioner "local-exec" {
-    command     = "kubectl apply -f https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.11.0"
+    command     = "kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.11.0/manifests/crds/application-crd.yaml"
     interpreter = ["PowerShell", "-Command"]
   }
 }
+
 
 # ArgoCD
 resource "helm_release" "argocd" {
@@ -125,9 +126,10 @@ resource "helm_release" "prometheus" {
 }
 
 # ArgoCD Application
+# ArgoCD Application
 resource "kubernetes_manifest" "my_app_argocd" {
   depends_on = [
-    helm_release.argocd
+    null_resource.wait_for_argocd_crds
   ]
 
   manifest = {
