@@ -41,7 +41,7 @@ jobs:
         working-directory: ./terraform
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply --auto-approve
         working-directory: ./terraform
         env:
           PATH: "$PATH:/usr/local/bin"
