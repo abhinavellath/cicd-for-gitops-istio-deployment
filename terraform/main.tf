@@ -1,6 +1,6 @@
 terraform {
   required_providers {
-     null = {
+    null = {
       source  = "hashicorp/null"
       version = "~> 3.0"
     }
@@ -8,24 +8,29 @@ terraform {
       source  = "hashicorp/helm"
       version = "~> 2.11"
     }
-    kubernetes = { source  = "hashicorp/kubernetes" version = "~> 2.22" }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.22"
+    }
   }
 }
 
-# Provision a Minikube Cluster
-resource "null_resource" "minikube_cluster" {
+# Provision a Kind Cluster (Windows PowerShell)
+resource "null_resource" "kind_cluster" {
   provisioner "local-exec" {
-    command = "sudo sh -c 'kind create cluster --name my-gitops-cluster'"
+    command = "kind create cluster --name my-gitops-cluster"
+    interpreter = ["PowerShell", "-Command"]
   }
   provisioner "local-exec" {
     when    = destroy
-    command = "sudo sh -c 'kind delete cluster --name my-gitops-cluster'"
+    command = "kind delete cluster --name my-gitops-cluster"
+    interpreter = ["PowerShell", "-Command"]
   }
 }
 
 # Istio Base & Istiod
 resource "helm_release" "istio_base" {
-  depends_on       = [null_resource.minikube_cluster]
+  depends_on       = [null_resource.kind_cluster]
   name             = "istio-base"
   repository       = "https://istio-release.storage.googleapis.com/charts"
   chart            = "base"
@@ -52,7 +57,7 @@ resource "helm_release" "istiod" {
 
 # ArgoCD
 resource "helm_release" "argocd" {
-  depends_on       = [null_resource.minikube_cluster, helm_release.istiod]
+  depends_on       = [null_resource.kind_cluster, helm_release.istiod]
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
   chart            = "argo-cd"
@@ -62,7 +67,7 @@ resource "helm_release" "argocd" {
 
 # Prometheus and Grafana
 resource "helm_release" "prometheus" {
-  depends_on       = [null_resource.minikube_cluster, helm_release.istiod]
+  depends_on       = [null_resource.kind_cluster, helm_release.istiod]
   name             = "kube-prometheus-stack"
   repository       = "https://prometheus-community.github.io/helm-charts"
   chart            = "kube-prometheus-stack"
