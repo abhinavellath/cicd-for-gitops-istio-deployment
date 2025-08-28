@@ -72,7 +72,7 @@ resource "null_resource" "install_argocd_crds" {
   depends_on = [null_resource.minikube_cluster]
 
   provisioner "local-exec" {
-    command     = "kubectl apply -k https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.11.0"
+    command     = "kubectl apply -f https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.11.0"
     interpreter = ["PowerShell", "-Command"]
   }
 }
@@ -96,7 +96,7 @@ resource "null_resource" "wait_for_argocd_crds" {
 
   provisioner "local-exec" {
     command = <<EOT
-    $maxRetries=10
+    $maxRetries=30
     $count=0
     while ($count -lt $maxRetries) {
       if (kubectl get crd applications.argoproj.io -o name) {
