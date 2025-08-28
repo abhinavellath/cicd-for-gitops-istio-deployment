@@ -40,7 +40,7 @@ resource "null_resource" "minikube_cluster" {
   }
 }
 
-# Istio Base & Istiod
+# Istio Base
 resource "helm_release" "istio_base" {
   depends_on       = [null_resource.minikube_cluster]
   name             = "istio-base"
@@ -48,19 +48,19 @@ resource "helm_release" "istio_base" {
   chart            = "base"
   namespace        = "istio-system"
   create_namespace = true
+  version          = "1.23.0"   # pin to a known version
 }
 
+# Istiod
 resource "helm_release" "istiod" {
   depends_on       = [helm_release.istio_base]
   name             = "istiod"
   repository       = "https://istio-release.storage.googleapis.com/charts"
   chart            = "istiod"
   namespace        = "istio-system"
+  version          = "1.23.0"
   values = [
     <<-EOT
-    global:
-      hub: gcr.io/istio-release
-      tag: 1.20.0
     meshConfig:
       accessLogFile: "/dev/stdout"
     EOT
@@ -83,15 +83,17 @@ resource "null_resource" "install_argocd_crds" {
 
 # ArgoCD
 resource "helm_release" "argocd" {
-  depends_on       = [null_resource.install_argocd_crds, helm_release.istiod]
+  depends_on       = [helm_release.istiod]
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
   chart            = "argo-cd"
   namespace        = "argocd"
   create_namespace = true
-  wait    = true
-  timeout = 600
+  wait             = true
+  timeout          = 600
+  version          = "7.4.4"  # example stable version
 }
+
 
 
 # Wait until ArgoCD CRDs are available
