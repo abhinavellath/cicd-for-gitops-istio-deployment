@@ -71,10 +71,41 @@ resource "null_resource" "wait_for_k8s" {
 }
 
 # ----------------------------------------
+# Setup Helm Repos
+# ----------------------------------------
+resource "null_resource" "helm_repos" {
+  depends_on = [null_resource.wait_for_k8s]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      helm repo add istio https://istio-release.storage.googleapis.com/charts
+      helm repo add argocd https://argoproj.github.io/argo-helm
+      helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+      helm repo update
+    EOT
+    interpreter = ["PowerShell", "-Command"]
+  }
+}
+
+# ----------------------------------------
+# Cleanup any existing Istio resources (avoid ServiceAccount conflicts)
+# ----------------------------------------
+resource "null_resource" "cleanup_istio" {
+  depends_on = [null_resource.helm_repos]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      kubectl delete namespace istio-system --ignore-not-found --grace-period=0 --force
+    EOT
+    interpreter = ["PowerShell", "-Command"]
+  }
+}
+
+# ----------------------------------------
 # Istio Base
 # ----------------------------------------
 resource "helm_release" "istio_base" {
-  depends_on       = [null_resource.wait_for_k8s]
+  depends_on       = [null_resource.cleanup_istio]
   name             = "istio-base"
   repository       = "https://istio-release.storage.googleapis.com/charts"
   chart            = "base"
@@ -140,19 +171,19 @@ resource "null_resource" "wait_for_argocd_crds" {
 
   provisioner "local-exec" {
     command = <<EOT
-    $maxRetries=30
-    $count=0
-    while ($count -lt $maxRetries) {
-      if (kubectl get crd applications.argoproj.io -o name) {
-        Write-Output " ArgoCD CRDs are available."
-        exit 0
+      $maxRetries=30
+      $count=0
+      while ($count -lt $maxRetries) {
+        if (kubectl get crd applications.argoproj.io -o name) {
+          Write-Output " ArgoCD CRDs are available."
+          exit 0
+        }
+        Write-Output " Waiting for ArgoCD CRDs... retry $count"
+        Start-Sleep -Seconds 10
+        $count++
       }
-      Write-Output " Waiting for ArgoCD CRDs... retry $count"
-      Start-Sleep -Seconds 10
-      $count++
-    }
-    Write-Error "CRDs not available after waiting."
-    exit 1
+      Write-Error "CRDs not available after waiting."
+      exit 1
     EOT
     interpreter = ["PowerShell", "-Command"]
   }
