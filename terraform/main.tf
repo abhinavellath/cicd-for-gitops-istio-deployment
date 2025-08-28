@@ -19,15 +19,15 @@ provider "kubernetes" {
   config_path = pathexpand("~/.kube/config")
 }
 
-# Provision a Kind Cluster (Windows PowerShell)
-resource "null_resource" "kind_cluster" {
+# Provision a Minikube Cluster (Windows PowerShell)
+resource "null_resource" "minikube_cluster" {
   provisioner "local-exec" {
-    command     = "kind create cluster --name my-gitops-cluster"
+    command     = "minikube create cluster --name my-gitops-cluster"
     interpreter = ["PowerShell", "-Command"]
   }
   provisioner "local-exec" {
     when        = destroy
-    command     = "kind delete cluster --name my-gitops-cluster"
+    command     = "minikube delete cluster --name my-gitops-cluster"
     interpreter = ["PowerShell", "-Command"]
   }
 }
