@@ -15,6 +15,10 @@ terraform {
   }
 }
 
+provider "kubernetes" {
+  config_path = "${pathexpand("~/.kube/config")}"
+}
+
 # Provision a Kind Cluster (Windows PowerShell)
 resource "null_resource" "kind_cluster" {
   provisioner "local-exec" {
