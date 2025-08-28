@@ -11,14 +11,22 @@ terraform {
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.22"
-      config_context = "minikube"
     }
   }
 }
 
 provider "kubernetes" {
-  config_path = pathexpand("~/.kube/config")
+  config_path    = pathexpand("~/.kube/config")
+  config_context = "minikube"
 }
+
+provider "helm" {
+  kubernetes {
+    config_path    = pathexpand("~/.kube/config")
+    config_context = "minikube"
+  }
+}
+
 
 # Provision a Minikube Cluster (Windows PowerShell)
 resource "null_resource" "minikube_cluster" {
@@ -28,7 +36,7 @@ resource "null_resource" "minikube_cluster" {
   }
   provisioner "local-exec" {
     when        = destroy
-    command     = ""minikube delete -p my-gitops-cluster"
+    command     = "minikube delete -p my-gitops-cluster"
     interpreter = ["PowerShell", "-Command"]
   }
 }
