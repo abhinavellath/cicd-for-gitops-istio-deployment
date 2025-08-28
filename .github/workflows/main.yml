@@ -43,8 +43,6 @@ jobs:
       - name: Terraform Apply
         run: terraform apply --auto-approve
         working-directory: ./terraform
-        env:
-          PATH: "$PATH:/usr/local/bin"
 
       - name: Update Kubernetes Manifest with new image tag
         run: |
