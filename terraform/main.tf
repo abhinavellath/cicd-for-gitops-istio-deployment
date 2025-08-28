@@ -11,6 +11,7 @@ terraform {
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.22"
+      config_context = "minikube"
     }
   }
 }
@@ -22,12 +23,12 @@ provider "kubernetes" {
 # Provision a Minikube Cluster (Windows PowerShell)
 resource "null_resource" "minikube_cluster" {
   provisioner "local-exec" {
-    command     = "minikube create cluster --name my-gitops-cluster"
+    command     = "minikube start -p my-gitops-cluster"
     interpreter = ["PowerShell", "-Command"]
   }
   provisioner "local-exec" {
     when        = destroy
-    command     = "minikube delete cluster --name my-gitops-cluster"
+    command     = ""minikube delete -p my-gitops-cluster"
     interpreter = ["PowerShell", "-Command"]
   }
 }
@@ -78,10 +79,11 @@ resource "null_resource" "wait_for_argocd_crds" {
   depends_on = [helm_release.argocd]
 
   provisioner "local-exec" {
-    command = "kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=120s"
+    command = "kubectl wait --for=condition=Established crd/applications.argoproj.io crd/appprojects.argoproj.io --timeout=120s"
     interpreter = ["PowerShell", "-Command"]
   }
 }
+
 
 # Prometheus and Grafana
 resource "helm_release" "prometheus" {
