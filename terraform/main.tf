@@ -39,7 +39,7 @@ resource "random_id" "suffix" {
 }
 
 locals {
-  istio_namespace = "istio-system-${random_id.suffix.hex}"
+  istio_namespace = "istio-system"
 }
 
 # ----------------------------------------
