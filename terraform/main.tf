@@ -40,11 +40,27 @@ resource "null_resource" "minikube_cluster" {
   }
 }
 
+# Repo links
+resource "helm_repository" "istio" {
+  name = "istio"
+  url  = "https://istio-release.storage.googleapis.com/charts"
+}
+
+resource "helm_repository" "argocd" {
+  name = "argo"
+  url  = "https://argoproj.github.io/argo-helm"
+}
+
+resource "helm_repository" "prometheus" {
+  name = "prometheus"
+  url  = "https://prometheus-community.github.io/helm-charts"
+}
+
 # Istio Base & Istiod
 resource "helm_release" "istio_base" {
   depends_on       = [null_resource.minikube_cluster]
   name             = "istio-base"
-  repository       = "https://istio-release.storage.googleapis.com/charts"
+  repository       = helm_repository.istio.url
   chart            = "base"
   namespace        = "istio-system"
   create_namespace = true
@@ -53,7 +69,7 @@ resource "helm_release" "istio_base" {
 resource "helm_release" "istiod" {
   depends_on       = [helm_release.istio_base]
   name             = "istiod"
-  repository       = "https://istio-release.storage.googleapis.com/charts"
+  repository       = helm_repository.istio.url
   chart            = "istiod"
   namespace        = "istio-system"
   values = [
@@ -85,7 +101,7 @@ resource "null_resource" "install_argocd_crds" {
 resource "helm_release" "argocd" {
   depends_on       = [null_resource.install_argocd_crds, helm_release.istiod]
   name             = "argocd"
-  repository       = "https://argoproj.github.io/argo-helm"
+  repository       = helm_repository.argocd.url
   chart            = "argo-cd"
   namespace        = "argocd"
   create_namespace = true
@@ -122,7 +138,7 @@ resource "null_resource" "wait_for_argocd_crds" {
 resource "helm_release" "prometheus" {
   depends_on       = [null_resource.minikube_cluster, helm_release.istiod]
   name             = "kube-prometheus-stack"
-  repository       = "https://prometheus-community.github.io/helm-charts"
+  repository       = helm_repository.prometheus.url
   chart            = "kube-prometheus-stack"
   namespace        = "monitoring"
   create_namespace = true
