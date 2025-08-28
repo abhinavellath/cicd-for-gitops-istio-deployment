@@ -12,6 +12,10 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "~> 2.22"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
   }
 }
 
@@ -28,7 +32,18 @@ provider "helm" {
 }
 
 # ----------------------------------------
-# Provision a Minikube Cluster
+# Generate unique suffix for namespaces
+# ----------------------------------------
+resource "random_id" "suffix" {
+  byte_length = 2
+}
+
+locals {
+  istio_namespace = "istio-system-${random_id.suffix.hex}"
+}
+
+# ----------------------------------------
+# Provision Minikube Cluster
 # ----------------------------------------
 resource "null_resource" "minikube_cluster" {
   provisioner "local-exec" {
@@ -43,7 +58,7 @@ resource "null_resource" "minikube_cluster" {
 }
 
 # ----------------------------------------
-# Wait for Kubernetes API to be ready
+# Wait for Kubernetes API
 # ----------------------------------------
 resource "null_resource" "wait_for_k8s" {
   depends_on = [null_resource.minikube_cluster]
@@ -71,7 +86,7 @@ resource "null_resource" "wait_for_k8s" {
 }
 
 # ----------------------------------------
-# Setup Helm Repos
+# Add and update Helm repos
 # ----------------------------------------
 resource "null_resource" "helm_repos" {
   depends_on = [null_resource.wait_for_k8s]
@@ -88,28 +103,14 @@ resource "null_resource" "helm_repos" {
 }
 
 # ----------------------------------------
-# Cleanup any existing Istio resources (avoid ServiceAccount conflicts)
-# ----------------------------------------
-resource "null_resource" "cleanup_istio" {
-  depends_on = [null_resource.helm_repos]
-
-  provisioner "local-exec" {
-    command = <<EOT
-      kubectl delete namespace istio-system --ignore-not-found --grace-period=0 --force
-    EOT
-    interpreter = ["PowerShell", "-Command"]
-  }
-}
-
-# ----------------------------------------
 # Istio Base
 # ----------------------------------------
 resource "helm_release" "istio_base" {
-  depends_on       = [null_resource.cleanup_istio]
+  depends_on       = [null_resource.helm_repos]
   name             = "istio-base"
   repository       = "https://istio-release.storage.googleapis.com/charts"
   chart            = "base"
-  namespace        = "istio-system"
+  namespace        = local.istio_namespace
   create_namespace = true
   version          = "1.23.0"
 }
@@ -122,7 +123,7 @@ resource "helm_release" "istiod" {
   name             = "istiod"
   repository       = "https://istio-release.storage.googleapis.com/charts"
   chart            = "istiod"
-  namespace        = "istio-system"
+  namespace        = local.istio_namespace
   version          = "1.23.0"
   values = [
     <<-EOT
@@ -164,7 +165,7 @@ resource "helm_release" "argocd" {
 }
 
 # ----------------------------------------
-# Wait until ArgoCD CRDs are available
+# Wait for ArgoCD CRDs
 # ----------------------------------------
 resource "null_resource" "wait_for_argocd_crds" {
   depends_on = [helm_release.argocd]
