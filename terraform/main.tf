@@ -16,18 +16,18 @@ terraform {
 }
 
 provider "kubernetes" {
-  config_path = "${pathexpand("~/.kube/config")}"
+  config_path = pathexpand("~/.kube/config")
 }
 
 # Provision a Kind Cluster (Windows PowerShell)
 resource "null_resource" "kind_cluster" {
   provisioner "local-exec" {
-    command = "kind create cluster --name my-gitops-cluster"
+    command     = "kind create cluster --name my-gitops-cluster"
     interpreter = ["PowerShell", "-Command"]
   }
   provisioner "local-exec" {
-    when    = destroy
-    command = "kind delete cluster --name my-gitops-cluster"
+    when        = destroy
+    command     = "kind delete cluster --name my-gitops-cluster"
     interpreter = ["PowerShell", "-Command"]
   }
 }
@@ -67,6 +67,20 @@ resource "helm_release" "argocd" {
   chart            = "argo-cd"
   namespace        = "argocd"
   create_namespace = true
+
+  # ✅ Ensure Terraform waits for CRDs & resources
+  wait    = true
+  timeout = 600
+}
+
+# Wait for ArgoCD CRDs to be registered before creating Applications
+resource "null_resource" "wait_for_argocd_crds" {
+  depends_on = [helm_release.argocd]
+
+  provisioner "local-exec" {
+    command = "kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=120s"
+    interpreter = ["PowerShell", "-Command"]
+  }
 }
 
 # Prometheus and Grafana
@@ -81,7 +95,11 @@ resource "helm_release" "prometheus" {
 
 # ArgoCD Application
 resource "kubernetes_manifest" "my_app_argocd" {
-  depends_on = [helm_release.argocd]
+  depends_on = [
+    helm_release.argocd,
+    null_resource.wait_for_argocd_crds
+  ]
+
   manifest = {
     apiVersion = "argoproj.io/v1alpha1"
     kind       = "Application"
