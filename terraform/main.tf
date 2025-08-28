@@ -120,7 +120,7 @@ resource "null_resource" "cleanup_istio_sa" {
 # Istio Base
 # ----------------------------------------
 resource "helm_release" "istio_base" {
-  depends_on       = [null_resource.helm_repos]
+  depends_on       = [null_resource.cleanup_istio_sa]
   name             = "istio-base"
   repository       = "https://istio-release.storage.googleapis.com/charts"
   chart            = "base"
