@@ -34,7 +34,7 @@ resource "null_resource" "minikube_cluster" {
 
 # Istio Base & Istiod
 resource "helm_release" "istio_base" {
-  depends_on       = [null_resource.kind_cluster]
+  depends_on       = [null_resource.minikube_cluster]
   name             = "istio-base"
   repository       = "https://istio-release.storage.googleapis.com/charts"
   chart            = "base"
