@@ -93,6 +93,10 @@ resource "null_resource" "helm_repos" {
 
   provisioner "local-exec" {
     command = <<EOT
+      helm uninstall istio-base -n istio-system --ignore-not-found
+      helm uninstall istiod -n istio-system --ignore-not-found
+      rm -rf ~/.helm/cache
+      rm -rf ~/.helm/repository
       helm repo add istio https://istio-release.storage.googleapis.com/charts
       helm repo add argocd https://argoproj.github.io/argo-helm
       helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
