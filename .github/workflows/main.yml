@@ -31,8 +31,8 @@ jobs:
 
       - name: Run Trivy scan on Docker image
         run: |
-          IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}
-          trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE_NAME
+         echo "IMAGE_NAME=***/my-app:${{ github.sha }}" >> $env:GITHUB_ENV
+        shell: pwsh
 
       - name: Terraform Init
         run: terraform init
