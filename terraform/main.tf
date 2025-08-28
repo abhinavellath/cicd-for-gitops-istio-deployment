@@ -127,7 +127,7 @@ resource "helm_release" "prometheus" {
 # ArgoCD Application
 resource "kubernetes_manifest" "my_app_argocd" {
   depends_on = [
-    null_resource.wait_for_argocd_crds
+    helm_release.argocd
   ]
 
   manifest = {
