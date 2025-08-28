@@ -61,7 +61,7 @@ resource "helm_release" "istiod" {
 
 # ArgoCD
 resource "helm_release" "argocd" {
-  depends_on       = [null_resource.kind_cluster, helm_release.istiod]
+  depends_on       = [null_resource.minikube_cluster, helm_release.istiod]
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
   chart            = "argo-cd"
@@ -85,7 +85,7 @@ resource "null_resource" "wait_for_argocd_crds" {
 
 # Prometheus and Grafana
 resource "helm_release" "prometheus" {
-  depends_on       = [null_resource.kind_cluster, helm_release.istiod]
+  depends_on       = [null_resource.minikube_cluster, helm_release.istiod]
   name             = "kube-prometheus-stack"
   repository       = "https://prometheus-community.github.io/helm-charts"
   chart            = "kube-prometheus-stack"
