@@ -30,9 +30,11 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/my-app:latest
 
       - name: Run Trivy scan on Docker image
-        run: |
-         echo "IMAGE_NAME=***/my-app:${{ github.sha }}" >> $env:GITHUB_ENV
         shell: pwsh
+        run: |
+          $env:IMAGE_NAME="***/my-app:${{ github.sha }}"
+          echo "IMAGE_NAME=$env:IMAGE_NAME" >> $env:GITHUB_ENV
+
 
       - name: Terraform Init
         run: terraform init
