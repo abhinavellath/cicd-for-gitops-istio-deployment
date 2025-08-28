@@ -55,10 +55,10 @@ resource "null_resource" "wait_for_k8s" {
       while ($count -lt $maxRetries) {
         try {
           kubectl get nodes
-          Write-Output "✅ Kubernetes API is ready."
+          Write-Output " Kubernetes API is ready."
           exit 0
         } catch {
-          Write-Output "⏳ Waiting for Kubernetes API... retry $count"
+          Write-Output " Waiting for Kubernetes API... retry $count"
           Start-Sleep -Seconds 10
           $count++
         }
@@ -144,10 +144,10 @@ resource "null_resource" "wait_for_argocd_crds" {
     $count=0
     while ($count -lt $maxRetries) {
       if (kubectl get crd applications.argoproj.io -o name) {
-        Write-Output "✅ ArgoCD CRDs are available."
+        Write-Output " ArgoCD CRDs are available."
         exit 0
       }
-      Write-Output "⏳ Waiting for ArgoCD CRDs... retry $count"
+      Write-Output " Waiting for ArgoCD CRDs... retry $count"
       Start-Sleep -Seconds 10
       $count++
     }
