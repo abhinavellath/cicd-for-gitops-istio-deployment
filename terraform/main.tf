@@ -72,7 +72,7 @@ resource "null_resource" "install_argocd_crds" {
   depends_on = [null_resource.minikube_cluster]
 
   provisioner "local-exec" {
-    command = "kubectl apply -k https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.11.0"
+    command     = "kubectl apply -k https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.11.0"
     interpreter = ["PowerShell", "-Command"]
   }
 }
@@ -90,6 +90,30 @@ resource "helm_release" "argocd" {
   timeout = 600
 }
 
+# Wait until ArgoCD CRDs are available
+resource "null_resource" "wait_for_argocd_crds" {
+  depends_on = [helm_release.argocd]
+
+  provisioner "local-exec" {
+    command = <<EOT
+    $maxRetries=10
+    $count=0
+    while ($count -lt $maxRetries) {
+      if (kubectl get crd applications.argoproj.io -o name) {
+        Write-Output " ArgoCD CRDs are available."
+        exit 0
+      }
+      Write-Output "⏳ Waiting for ArgoCD CRDs... retry $count"
+      Start-Sleep -Seconds 10
+      $count++
+    }
+    Write-Error "CRDs not available after waiting."
+    exit 1
+    EOT
+    interpreter = ["PowerShell", "-Command"]
+  }
+}
+
 # Prometheus and Grafana
 resource "helm_release" "prometheus" {
   depends_on       = [null_resource.minikube_cluster, helm_release.istiod]
@@ -103,7 +127,7 @@ resource "helm_release" "prometheus" {
 # ArgoCD Application
 resource "kubernetes_manifest" "my_app_argocd" {
   depends_on = [
-    helm_release.argocd
+    null_resource.wait_for_argocd_crds
   ]
 
   manifest = {
