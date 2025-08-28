@@ -27,7 +27,6 @@ provider "helm" {
   }
 }
 
-
 # Provision a Minikube Cluster (Windows PowerShell)
 resource "null_resource" "minikube_cluster" {
   provisioner "local-exec" {
@@ -68,30 +67,28 @@ resource "helm_release" "istiod" {
   ]
 }
 
+# Install ArgoCD CRDs before Helm release
+resource "null_resource" "install_argocd_crds" {
+  depends_on = [null_resource.minikube_cluster]
+
+  provisioner "local-exec" {
+    command = "kubectl apply -k https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.11.0"
+    interpreter = ["PowerShell", "-Command"]
+  }
+}
+
 # ArgoCD
 resource "helm_release" "argocd" {
-  depends_on       = [null_resource.minikube_cluster, helm_release.istiod]
+  depends_on       = [null_resource.install_argocd_crds, helm_release.istiod]
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
   chart            = "argo-cd"
   namespace        = "argocd"
   create_namespace = true
 
-  # ✅ Ensure Terraform waits for CRDs & resources
   wait    = true
   timeout = 600
 }
-
-# Wait for ArgoCD CRDs to be registered before creating Applications
-resource "null_resource" "wait_for_argocd_crds" {
-  depends_on = [helm_release.argocd]
-
-  provisioner "local-exec" {
-    command = "kubectl wait --for=condition=Established crd/applications.argoproj.io crd/appprojects.argoproj.io --timeout=120s"
-    interpreter = ["PowerShell", "-Command"]
-  }
-}
-
 
 # Prometheus and Grafana
 resource "helm_release" "prometheus" {
@@ -106,8 +103,7 @@ resource "helm_release" "prometheus" {
 # ArgoCD Application
 resource "kubernetes_manifest" "my_app_argocd" {
   depends_on = [
-    helm_release.argocd,
-    null_resource.wait_for_argocd_crds
+    helm_release.argocd
   ]
 
   manifest = {
