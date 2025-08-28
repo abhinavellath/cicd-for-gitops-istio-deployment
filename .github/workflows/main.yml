@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
+    runs-on: label
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
