@@ -69,13 +69,16 @@ resource "helm_release" "istiod" {
 
 # Install ArgoCD CRDs before Helm release
 resource "null_resource" "install_argocd_crds" {
-  depends_on = [null_resource.minikube_cluster]
-
   provisioner "local-exec" {
-    command     = "kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.11.0/manifests/crds/application-crd.yaml"
+    command = <<EOT
+      kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.11.0/manifests/crds/application-crd.yaml
+      kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.11.0/manifests/crds/appproject-crd.yaml
+      kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.11.0/manifests/crds/applicationset-crd.yaml
+    EOT
     interpreter = ["PowerShell", "-Command"]
   }
 }
+
 
 
 # ArgoCD
