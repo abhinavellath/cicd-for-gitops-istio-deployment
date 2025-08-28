@@ -103,6 +103,20 @@ resource "null_resource" "helm_repos" {
 }
 
 # ----------------------------------------
+# Cleanup conflicting Istio ServiceAccount
+# ----------------------------------------
+resource "null_resource" "cleanup_istio_sa" {
+  depends_on = [null_resource.helm_repos]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      kubectl delete serviceaccount istio-reader-service-account -n ${local.istio_namespace} --ignore-not-found
+    EOT
+    interpreter = ["PowerShell", "-Command"]
+  }
+}
+
+# ----------------------------------------
 # Istio Base
 # ----------------------------------------
 resource "helm_release" "istio_base" {
